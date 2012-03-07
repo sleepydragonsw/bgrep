@@ -1,0 +1,7 @@
+bgrep - search binary files for substring matches
+By: Denver Coneybeare <denver@sleepydragon.org>
+
+Change Log
+
+1.0.0 (March 06, 2012)
+    - initial release

@@ -44,6 +44,7 @@ Table of Contents
     changes
     todo
     source
+    license
 
 
 

@@ -182,10 +182,12 @@ class BgrepApplication:
         """
 
         # create the buffer if it has not been allocated yet
+        # NOTE: don't use a larger buffer size because reading from stdin in
+        # Windows will raise IOError if the buffer is too large... ugh
         if buffer is None:
             buffer_size = len(self.pattern) * 2
-            if buffer_size < 32768:
-                buffer_size = 32768
+            if buffer_size < 16384:
+                buffer_size = 16384
             buffer = bytearray(buffer_size)
 
         # read the bytes from the files and search for pattern matches

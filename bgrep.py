@@ -598,5 +598,10 @@ class ArgumentParser(argparse.ArgumentParser):
 ################################################################################
 
 if __name__ == "__main__":
-    exit_code = main(prog="bgrep")
+    try:
+        exit_code = main(prog="bgrep")
+    except KeyboardInterrupt:
+        print("ERROR: application terminated by keyboard interrupt",
+            file=sys.stderr)
+        exit_code = 1
     sys.exit(exit_code)

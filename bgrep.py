@@ -26,6 +26,7 @@ import glob
 import itertools
 import logging
 import os
+import re
 import sys
 
 ################################################################################
@@ -281,6 +282,15 @@ class FileIterator:
     """
     Iterates over a list of paths, recursively walking directories and expanding
     glob wildcard patterns.
+    """
+
+    GLOB_MAGIC_RE = re.compile("[*?[]")
+    """
+    Regular expression that matches glob-style wildcards in a string.
+    This pattern can be used to determine if a path contains glob-style
+    wildcards or is just a flat path.
+    This regular expression was copied from the glob module, so it should only
+    be used as a *hint*, not an absolute truth.
     """
 
     def __init__(self, paths=None, default=None, default_path=None):
@@ -587,16 +597,16 @@ class ArgumentParser(argparse.ArgumentParser):
                 default_path="<standard input>")
 
             # enable print_filenames if more than one file is being searched
+            # or if a path with glob-style wildcards was given
             num_explicit_paths = len(paths)
-            print_filenames = num_explicit_paths > 1
-            if not print_filenames and num_explicit_paths > 0:
-                paths_iter = glob.iglob(paths[0])
-                paths_count = 0
-                for unused in paths_iter:
-                    paths_count += 1
-                    if paths_count > 1:
-                        print_filenames = True
-                        break
+            if num_explicit_paths < 1:
+                print_filenames = False # reading from standard input
+            elif num_explicit_paths > 1:
+                print_filenames = True
+            else:
+                first_path = paths[0]
+                match = FileIterator.GLOB_MAGIC_RE.search(first_path)
+                print_filenames = (match is not None)
 
             return BgrepApplication(
                 pattern=pattern,

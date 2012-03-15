@@ -110,13 +110,22 @@ class BgrepApplication:
     The bgrep application.
     """
 
-    def __init__(self, pattern, paths=None, stdout=None, stdin=None,
-            logger=None):
+    def __init__(self,
+            pattern,
+            files=None,
+            print_filenames=False,
+            stdout=None,
+            stdin=None,
+            logger=None
+        ):
         """
         Initializes a new instance of this class.
         *pattern* must be a byte string whose value to search for.
-        *paths* must be an iterable of strings whose values are the paths of the
-        files to search; may be None (the default) to read input from *stdin*.
+        *files* must be a FileIterator object whose files to search.
+        *print_filenames* is evaluated as a boolean; if it evaluates to True
+        then each match is prefixed with the name of the file in which it was
+        found; if False (the default) then matches are not prefixed with the
+        filename.
         *stdout* must be a file-like object opened in text mode to use as the
         standard output stream; may be None (the default) to use sys.stdout.
         *stdin* must be a file-like object opened in *binary* mode to use as the
@@ -126,7 +135,8 @@ class BgrepApplication:
         are to be written; may be None (the default) to not emit log messages.
         """
         self.pattern = pattern
-        self.paths = paths
+        self.files = files
+        self.print_filenames = print_filenames
         self.stdout = stdout
         self.stdin = stdin
         self.logger = logger
@@ -138,27 +148,16 @@ class BgrepApplication:
         matches of the pattern self.pattern.
         Raises Error if an error occurs.
         """
-        class MyFileIterator(FileIterator):
-            def on_error(self, path, pattern, error):
-                message = "unable to read {}: {}".format(path, error)
-                self.log_warning(message)
-
-        files = MyFileIterator(self.paths, self.stdin)
         buffer = None
-
-        for file_info in files:
+        for file_info in self.files:
             f = file_info.f
             path = file_info.path
             pattern = file_info.pattern
-
-            if path is None:
-                path = "<standard input>"
-
             self.log_debug("Searching {}".format(path))
             try:
                 buffer = self.search(f, path, buffer=buffer)
             except IOError as e:
-                files.on_error(path, pattern, e)
+                self.files.on_error(path, pattern, e)
 
 
     def search(self, f, path, buffer=None):
@@ -237,16 +236,6 @@ class BgrepApplication:
         return buffer
 
 
-    def log_warning(self, message):
-        """
-        Logs a warning message to self.logger.
-        If self.logger is None then this method does nothing.
-        """
-        logger = self.logger
-        if logger is not None:
-            logger.warning("WARNING: {}".format(message))
-
-
     def log_debug(self, message):
         """
         Logs a debug message to self.logger.
@@ -270,7 +259,14 @@ class BgrepApplication:
                 s[i] = 32 # 32 is the ASCII code for space
             i -= 1
 
-        print(s.decode("US-ASCII", errors="replace"), file=stdout)
+        if self.print_filenames:
+            prefix = "{}: ".format(path)
+        else:
+            prefix = ""
+
+        s_str = s.decode("US-ASCII", errors="replace")
+        message = "{}{}".format(prefix, s_str)
+        print(message, file=stdout)
 
 
     class Error(Exception):
@@ -287,7 +283,7 @@ class FileIterator:
     glob wildcard patterns.
     """
 
-    def __init__(self, paths=None, default=None):
+    def __init__(self, paths=None, default=None, default_path=None):
         """
         Initializes a new instance of FileIterator.
         *paths* must be an iterable of strings whose values are the paths of the
@@ -296,9 +292,12 @@ class FileIterator:
         *default* may be any object and will be returned if the given list of
         paths is either None or empty; if None (the default) then nothing will
         be returned if the given list of paths is None or empty.
+        *default_path* must be a string whose value is the path to use for the
+        given *default*, if used; may be None (the default).
         """
         self.paths = paths
         self.default = default
+        self.default_path = default_path
 
 
     def __iter__(self):
@@ -316,9 +315,9 @@ class FileIterator:
 
         # if the list of paths was empty then yield the default value, if given
         if paths_is_empty:
-            default = self.default
-            if default is not None:
-                yield self.FileInfo(path=None, f=default, pattern=None)
+            if self.default is not None:
+                yield self.FileInfo(path=self.default_path, f=self.default,
+                    pattern=None)
 
 
     def on_error(self, path, pattern, error):
@@ -560,7 +559,7 @@ class ArgumentParser(argparse.ArgumentParser):
             may be used when creating the application.
             """
             pattern = self.pattern.encode("US-ASCII", errors="ignore")
-            paths = self.paths
+
             log_level = self.log_level
             if log_level is None:
                 log_level = parser.default_log_level
@@ -572,9 +571,32 @@ class ArgumentParser(argparse.ArgumentParser):
             logger = logging.getLogger()
             logger.setLevel(log_level)
 
+
+            class MyFileIterator(FileIterator):
+                def on_error(self, path, pattern, error):
+                    message = "unable to read {}: {}".format(path, error)
+                    logger.warning("WARNING: {}".format(message))
+
+            paths = tuple(self.paths)
+            files = MyFileIterator(paths, default=stdin,
+                default_path="<standard input>")
+
+            # enable print_filenames if more than one file is being searched
+            num_explicit_paths = len(paths)
+            print_filenames = num_explicit_paths > 1
+            if not print_filenames and num_explicit_paths > 0:
+                paths_iter = glob.iglob(paths[0])
+                paths_count = 0
+                for unused in paths_iter:
+                    paths_count += 1
+                    if paths_count > 1:
+                        print_filenames = True
+                        break
+
             return BgrepApplication(
                 pattern=pattern,
-                paths=paths,
+                files=files,
+                print_filenames=print_filenames,
                 stdout=stdout,
                 stdin=stdin,
                 logger=logger,

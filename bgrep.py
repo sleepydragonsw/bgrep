@@ -568,10 +568,15 @@ class ArgumentParser(argparse.ArgumentParser):
             if stdin is not None:
                 stdin = stdin.buffer # use the underlying binary stream
 
+            # initialize the logging framework
+            handler = logging.StreamHandler(stream=parser.stderr)
+            formatter = logging.Formatter()
+            handler.setFormatter(formatter)
             logger = logging.getLogger()
-            logger.setLevel(log_level)
+            logger.addHandler(handler)
+            logger.setLevel(self.log_level)
 
-
+            # setup the iterator over the files to search
             class MyFileIterator(FileIterator):
                 def on_error(self, path, pattern, error):
                     message = "unable to read {}: {}".format(path, error)

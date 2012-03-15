@@ -560,9 +560,6 @@ class ArgumentParser(argparse.ArgumentParser):
             """
             pattern = self.pattern.encode("US-ASCII", errors="ignore")
 
-            log_level = self.log_level
-            if log_level is None:
-                log_level = parser.default_log_level
             stdout = parser.stdout
             stdin = parser.stdin
             if stdin is not None:
@@ -574,7 +571,10 @@ class ArgumentParser(argparse.ArgumentParser):
             handler.setFormatter(formatter)
             logger = logging.getLogger()
             logger.addHandler(handler)
-            logger.setLevel(self.log_level)
+            log_level = self.log_level
+            if log_level is None:
+                log_level = parser.default_log_level
+            logger.setLevel(log_level)
 
             # setup the iterator over the files to search
             class MyFileIterator(FileIterator):

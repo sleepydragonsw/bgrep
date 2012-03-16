@@ -429,6 +429,8 @@ class ArgumentParser(argparse.ArgumentParser):
 
     USAGE = "%(prog)s [options] <pattern> [path [path ...]]"
 
+    DESCRIPTION = "Search for binary strings in binary files."
+
     def __init__(self, prog=None, stdout=None, stderr=None, stdin=None):
         """
         Initializes a new instance of MyArgumentParser.
@@ -445,7 +447,8 @@ class ArgumentParser(argparse.ArgumentParser):
         standard input stream; may be None (the default) to use a stream chosen
         by each use, which is usually sys.stdin.
         """
-        super().__init__(prog=prog, usage=self.USAGE)
+        super().__init__(prog=prog, usage=self.USAGE,
+            description=self.DESCRIPTION)
         self.stdout = stdout
         self.stderr = stderr
         self.stdin = stdin

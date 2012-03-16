@@ -483,7 +483,7 @@ class ArgumentParser(argparse.ArgumentParser):
             help="""Print the version of this application and exit."""
         )
 
-        log_group = self.add_argument_group("Logging Options")
+        log_group = self.add_argument_group("logging options")
 
         arg_log_level_verbose = log_group.add_argument("-v", "--verbose",
             dest="log_level",

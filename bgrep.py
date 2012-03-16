@@ -466,10 +466,11 @@ class ArgumentParser(argparse.ArgumentParser):
 
         self.add_argument("paths",
             nargs="*",
-            help="""The paths of the files and/or directories to search.
+            metavar="path",
+            help="""The path of a file and/or directory to search.
             Unix glob patterns, such as "*", "?", and "[...]", are recognized.
-            Directories will be searched, recursively.
-            If no paths are specified then standard input is used.
+            Directories will be searched recursively.
+            If no paths are specified then standard input is searched.
             """
         )
 

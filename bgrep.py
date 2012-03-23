@@ -115,6 +115,7 @@ class BgrepApplication:
             pattern,
             files=None,
             print_filenames=False,
+            context_after=20,
             stdout=None,
             stdin=None,
             logger=None
@@ -127,6 +128,8 @@ class BgrepApplication:
         then each match is prefixed with the name of the file in which it was
         found; if False (the default) then matches are not prefixed with the
         filename.
+        *context_after* must be an integer whose value is the number of bytes
+        after a match to include in the output; the default is 20.
         *stdout* must be a file-like object opened in text mode to use as the
         standard output stream; may be None (the default) to use sys.stdout.
         *stdin* must be a file-like object opened in *binary* mode to use as the
@@ -138,6 +141,7 @@ class BgrepApplication:
         self.pattern = pattern
         self.files = files
         self.print_filenames = print_filenames
+        self.context_after = context_after
         self.stdout = stdout
         self.stdin = stdin
         self.logger = logger
@@ -185,7 +189,7 @@ class BgrepApplication:
         # NOTE: don't use a larger buffer size because reading from stdin in
         # Windows will raise IOError if the buffer is too large... ugh
         if buffer is None:
-            buffer_size = len(self.pattern) * 2
+            buffer_size = (len(self.pattern) * 2) + self.context_after
             if buffer_size < 16384:
                 buffer_size = 16384
             buffer = bytearray(buffer_size)
@@ -199,7 +203,7 @@ class BgrepApplication:
             index = buffer.find(self.pattern, 0, size)
             while index >= 0:
                 # extract the matching text, and some context, from the bytes
-                s_end = index + len(self.pattern) + 20
+                s_end = index + len(self.pattern) + self.context_after
                 if s_end > size:
                     s_end = size
                 s = buffer[index:s_end]
@@ -477,6 +481,13 @@ class ArgumentParser(argparse.ArgumentParser):
             """
         )
 
+        self.add_argument("-c", "--context-after",
+            type=int,
+            default=20,
+            help="""The number of bytes after a match to print
+            (default: %(default)i"""
+        )
+
         self.add_argument("--version",
             action="version",
             version=VERSION,
@@ -616,6 +627,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 pattern=pattern,
                 files=files,
                 print_filenames=print_filenames,
+                context_after=self.context_after,
                 stdout=stdout,
                 stdin=stdin,
                 logger=logger,

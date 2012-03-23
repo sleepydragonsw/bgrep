@@ -116,6 +116,7 @@ class BgrepApplication:
             files=None,
             print_filenames=False,
             context_after=20,
+            print_byte_offsets=False,
             stdout=None,
             stdin=None,
             logger=None
@@ -130,6 +131,10 @@ class BgrepApplication:
         filename.
         *context_after* must be an integer whose value is the number of bytes
         after a match to include in the output; the default is 20.
+        *print_byte_offsets* will be evaluated as a boolean; if it evaluates
+        to True then the byte offset of the match relative to the start of the
+        file will be displayed; if False (the default) then the byte offsets
+        will not be displayed.
         *stdout* must be a file-like object opened in text mode to use as the
         standard output stream; may be None (the default) to use sys.stdout.
         *stdin* must be a file-like object opened in *binary* mode to use as the
@@ -142,6 +147,7 @@ class BgrepApplication:
         self.files = files
         self.print_filenames = print_filenames
         self.context_after = context_after
+        self.print_byte_offsets = print_byte_offsets
         self.stdout = stdout
         self.stdin = stdin
         self.logger = logger
@@ -195,6 +201,7 @@ class BgrepApplication:
             buffer = bytearray(buffer_size)
 
         # read the bytes from the files and search for pattern matches
+        buffer_offset = 0
         size = f.readinto(buffer)
         while size > 0:
             last_match_end = -1
@@ -207,7 +214,8 @@ class BgrepApplication:
                 if s_end > size:
                     s_end = size
                 s = buffer[index:s_end]
-                self.on_match_found(path, s)
+                match_offset = buffer_offset + index
+                self.on_match_found(path, s, match_offset)
 
                 # see if there are more matches in this line
                 index += len(self.pattern)
@@ -234,6 +242,7 @@ class BgrepApplication:
                     check = check[:-1]
 
             # read the next chunk of bytes
+            buffer_offset += size - size_adjust
             size = f.readinto(next_read_buffer)
             size += size_adjust
 
@@ -251,7 +260,7 @@ class BgrepApplication:
             logger.debug(message)
 
 
-    def on_match_found(self, path, s):
+    def on_match_found(self, path, s, byte_offset):
         stdout = self.stdout
         if stdout is None:
             stdout = sys.stdout
@@ -264,8 +273,12 @@ class BgrepApplication:
                 s[i] = 32 # 32 is the ASCII code for space
             i -= 1
 
-        if self.print_filenames:
+        if self.print_filenames and self.print_byte_offsets:
+            prefix = "{}:{}: ".format(path, byte_offset)
+        elif self.print_filenames:
             prefix = "{}: ".format(path)
+        elif self.print_byte_offsets:
+            prefix = "{}: ".format(byte_offset)
         else:
             prefix = ""
 
@@ -488,6 +501,12 @@ class ArgumentParser(argparse.ArgumentParser):
             (default: %(default)i"""
         )
 
+        self.add_argument("-b", "--print-byte-offsets",
+            action="store_true",
+            default=False,
+            help="""Print the byte offset at which each match occurs"""
+        )
+
         self.add_argument("--version",
             action="version",
             version=VERSION,
@@ -628,6 +647,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 files=files,
                 print_filenames=print_filenames,
                 context_after=self.context_after,
+                print_byte_offsets=self.print_byte_offsets,
                 stdout=stdout,
                 stdin=stdin,
                 logger=logger,

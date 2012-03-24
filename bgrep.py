@@ -295,6 +295,79 @@ class BgrepApplication:
 
 ################################################################################
 
+class BinarySearchPattern:
+    """
+    Searches through a byte array for a pattern, handling the case where a
+    partial match occurs at the end but is incomplete, and may be continued
+    when more bytes are available.
+
+    This is an abstract class; subclasses will implement the actual logic to
+    search for various kinds of binary patterns in byte arrays.
+    """
+
+    def search(self, b, offset, length, state=None):
+        """
+        Searches for an occurrence of this pattern in a byte array.
+
+        *b* must be a bytes or bytearray object whose bytes to search.
+        *offset* must be an integer whose value is the offset in b at which
+        to begin the search
+        *length* must be an integer whose value is the number of bytes in b,
+        starting at offset, to consider when searching; if less than zero
+        then search the entire object.
+        *state* must be the state of a previous partial match in order to
+        continue where it left off.
+
+        Returns None if no match is found.  Otherwise, returns the tuple
+        (offset, length, state) if a full or partial match was found.  Both
+        *offset* and *length* are integers whose values give the range within
+        b of the match, the offset being the index of the beginning of the match
+        and the length being the number of bytes following the offset that make
+        up the match.  The *state* value is an opaque object that contains
+        state information about a partial match so that the match can be resumed
+        if more bytes are available.  If *state* is None then this indicates
+        a full match.  On the other hand, if *state* is not None then this
+        indicates that the last bytes of b create a partial match starting at
+        offset; the state may be passed to another invocation of this method
+        with additional bytes at which to continue the search.
+
+        The caller must be aware that a zero-length match may occur.  If this
+        method is called in a loop where the offset is incremented by the
+        returned length then it may become an infinite loop if the length of the
+        match is zero.
+
+        The implementation of this method in this class simply raises
+        NotImplementedError.  Subclasses must override this method to provide
+        the documented functionality.
+        """
+        raise NotImplementedError()
+
+################################################################################
+
+class ExactMatchBinarySearchPattern(BinarySearchPattern):
+    """
+    An implementation of BinarySearchPattern that searches for an exact match
+    to a list of bytes.
+    """
+
+    def __init__(self, pattern):
+        """
+        Initializes a new instance of this class.
+        *pattern* must be a bytes or bytearray object whose bytes are the exact
+        match for which this object is to search.
+        """
+        self.pattern = pattern
+
+
+    def search(self, b, offset, length, state=None):
+        match_index = b.find(self.pattern, offset, offset + length)
+        if match_index < 0:
+            return None
+        else:
+            return (match_index, len(self.pattern), None)
+
+################################################################################
+
 class FileIterator:
     """
     Iterates over a list of paths, recursively walking directories and expanding

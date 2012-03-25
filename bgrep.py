@@ -314,7 +314,8 @@ class BinarySearchPattern:
         to begin the search
         *length* must be an integer whose value is the number of bytes in b,
         starting at offset, to consider when searching; if None (the default)
-        then the entire string, computed as len(b), is used.
+        then the entire string beginning at the given offset, computed as
+        len(b)-offset, is used.
         *state* must be the state of a previous partial match in order to
         continue where it left off.
 
@@ -361,12 +362,38 @@ class ExactMatchBinarySearchPattern(BinarySearchPattern):
 
     def search(self, b, offset, length=None, state=None):
         if length is None:
-            length = len(b)
-        match_index = b.find(self.pattern, offset, offset + length)
-        if match_index < 0:
-            return None
+            length = len(b) - offset
+
+        pattern = self.pattern
+
+        # if state is not None then it is an integer whose value is the offset
+        # into the pattern at which to begin continuing the previous match;
+        # note that we might get yet another partial match if the pattern still
+        # is not entirely matched
+        if state is not None:
+            pattern = pattern[state:state + length]
+            if not b.startswith(pattern, offset, offset + length):
+                return None
+            elif state + len(pattern) == len(self.pattern):
+                return (0, len(pattern), None)
+            else:
+                return (0, len(pattern), state + length)
+
         else:
-            return (match_index, len(self.pattern), None)
+            match_offset = b.find(pattern, offset, offset + length)
+            if match_offset >= 0:
+                return (match_offset, len(pattern), None)
+            else:
+                if len(pattern) > length:
+                    pattern = pattern[:length]
+                while pattern:
+                    if b.endswith(pattern, offset, offset + length):
+                        match_offset = len(b) - len(pattern)
+                        match_length = len(pattern)
+                        state = len(pattern)
+                        return (match_offset, match_length, state)
+                    pattern = pattern[:-1]
+
 
 ################################################################################
 

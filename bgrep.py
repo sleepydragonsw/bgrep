@@ -305,7 +305,7 @@ class BinarySearchPattern:
     search for various kinds of binary patterns in byte arrays.
     """
 
-    def search(self, b, offset, length, state=None):
+    def search(self, b, offset, length=None, state=None):
         """
         Searches for an occurrence of this pattern in a byte array.
 
@@ -313,8 +313,8 @@ class BinarySearchPattern:
         *offset* must be an integer whose value is the offset in b at which
         to begin the search
         *length* must be an integer whose value is the number of bytes in b,
-        starting at offset, to consider when searching; if less than zero
-        then search the entire object.
+        starting at offset, to consider when searching; if None (the default)
+        then the entire string, computed as len(b), is used.
         *state* must be the state of a previous partial match in order to
         continue where it left off.
 
@@ -359,7 +359,9 @@ class ExactMatchBinarySearchPattern(BinarySearchPattern):
         self.pattern = pattern
 
 
-    def search(self, b, offset, length, state=None):
+    def search(self, b, offset, length=None, state=None):
+        if length is None:
+            length = len(b)
         match_index = b.find(self.pattern, offset, offset + length)
         if match_index < 0:
             return None

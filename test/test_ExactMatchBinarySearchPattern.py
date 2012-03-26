@@ -42,9 +42,16 @@ class ExactMatchBinarySearchPatternTestCase(unittest.TestCase):
 
     def do_test_match_expected(self, needle, haystack, haystack_offset,
             haystack_length, expected_offset, expected_length,
-            expected_complete=True):
-        x = ExactMatchBinarySearchPattern(needle)
+            expected_complete=True, state=None, x=None):
+        if x is None:
+            x = ExactMatchBinarySearchPattern(needle)
         result = x.search(haystack, haystack_offset, haystack_length)
+        self.assert_search_result(result, expected_offset, expected_length,
+            expected_complete)
+        return (x, result[2])
+
+    def assert_search_result(self, result, expected_offset, expected_length,
+            expected_complete):
         if result is None:
             self.fail("search() returned None")
         (actual_offset, actual_length, actual_state) = result
@@ -129,3 +136,10 @@ class TestPartialMatch(ExactMatchBinarySearchPatternTestCase):
 
     def test_pattern_abc_haystack_bab(self):
         self.do_test_match_expected(b"abc", b"bab", 0, None, 1, 2, False)
+
+    def test_pattern_continued_1(self):
+        (x, state) = self.do_test_match_expected(b"ab", b"a", 0, None, 0, 1, False)
+        result = x.search(b"b", 0, 1, state)
+        self.assert_search_result(result, 0, 1, True)
+
+

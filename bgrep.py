@@ -403,6 +403,10 @@ class ExactMatchBinarySearchPattern(BinarySearchPattern):
                     pattern = pattern[:-1]
 
 
+    def __repr__(self):
+        return "ExactMatchBinarySearchPattern({!r})".format(self.pattern)
+
+
 ################################################################################
 
 class FileIterator:

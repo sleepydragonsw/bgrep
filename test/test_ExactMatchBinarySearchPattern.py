@@ -2,6 +2,42 @@ import unittest
 
 from bgrep import ExactMatchBinarySearchPattern
 
+class ReprTestCase(unittest.TestCase):
+
+    def test_None(self):
+        x = ExactMatchBinarySearchPattern(None)
+        actual = repr(x)
+        self.assertEqual(actual, "ExactMatchBinarySearchPattern(None)")
+
+    def test_Empty_String(self):
+        x = ExactMatchBinarySearchPattern("")
+        actual = repr(x)
+        self.assertEqual(actual, "ExactMatchBinarySearchPattern('')")
+
+    def test_Nonempty_String(self):
+        x = ExactMatchBinarySearchPattern("hey there!")
+        actual = repr(x)
+        self.assertEqual(actual, "ExactMatchBinarySearchPattern('hey there!')")
+
+
+class StrTestCase(unittest.TestCase):
+
+    def test_None(self):
+        x = ExactMatchBinarySearchPattern(None)
+        actual = str(x)
+        self.assertEqual(actual, "ExactMatchBinarySearchPattern(None)")
+
+    def test_Empty_String(self):
+        x = ExactMatchBinarySearchPattern("")
+        actual = str(x)
+        self.assertEqual(actual, "ExactMatchBinarySearchPattern('')")
+
+    def test_Nonempty_String(self):
+        x = ExactMatchBinarySearchPattern("hey there!")
+        actual = str(x)
+        self.assertEqual(actual, "ExactMatchBinarySearchPattern('hey there!')")
+
+
 class ExactMatchBinarySearchPatternTestCase(unittest.TestCase):
 
     def do_test_match_expected(self, needle, haystack, haystack_offset,

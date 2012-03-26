@@ -309,33 +309,41 @@ class BinarySearchPattern:
         """
         Searches for an occurrence of this pattern in a byte array.
 
-        *b* must be a bytes or bytearray object whose bytes to search.
+        *b* must be a bytes or bytearray object whose bytes to search for a
+        match to the pattern represented by this object.
         *offset* must be an integer whose value is the offset in b at which
-        to begin the search
+        to begin the search.
         *length* must be an integer whose value is the number of bytes in b,
         starting at offset, to consider when searching; if None (the default)
-        then the entire string beginning at the given offset, computed as
-        len(b)-offset, is used.
-        *state* must be the state of a previous partial match in order to
-        continue where it left off.
+        then the entire string beginning at the given offset is searched, and
+        thus length is computed as len(b)-offset.
+        *state* is used to continue a previous partial match, and is described
+        in detail below; it should be None (the default) to start a new match.
 
         Returns None if no match is found.  Otherwise, returns the tuple
-        (offset, length, state) if a full or partial match was found.  Both
-        *offset* and *length* are integers whose values give the range within
-        b of the match, the offset being the index of the beginning of the match
-        and the length being the number of bytes following the offset that make
-        up the match.  The *state* value is an opaque object that contains
-        state information about a partial match so that the match can be resumed
-        if more bytes are available.  If *state* is None then this indicates
-        a full match.  On the other hand, if *state* is not None then this
-        indicates that the last bytes of b create a partial match starting at
-        offset; the state may be passed to another invocation of this method
-        with additional bytes at which to continue the search.
+        (offset, length, state) to give information about the match.  The
+        *offset* is an integer whose value is the index in the given byte array
+        of the beginning of the match; this value is greater than or equal to
+        the given offset.  The *length* is an integer whose value is the length
+        of the match in bytes.  Therefore, using these two values the matching
+        bytes can be retrieved by slicing the given byte array as follows:
+        b[offset:offset+length].
+
+        If the match is a full match (that is, the entire search pattern was
+        matched) then *state* will be None; otherwise, the match is a "partial"
+        match, meaning that the final bytes of the given byte array match the
+        beginning of the search pattern and may constitute a complete match but
+        more bytes are required to be examined to continue the search. The
+        caller can then invoke this method again with more bytes to continue the
+        search.  By giving the state as the *state* parameter to this method it
+        knows where in the pattern to continue.  The actual type of this
+        parameter is not defined and may be anything (except for None).
 
         The caller must be aware that a zero-length match may occur.  If this
         method is called in a loop where the offset is incremented by the
         returned length then it may become an infinite loop if the length of the
-        match is zero.
+        match is zero.  In this case, one solution may be to increment the
+        offset by 1 even if the match has a length of zero.
 
         The implementation of this method in this class simply raises
         NotImplementedError.  Subclasses must override this method to provide
